@@ -8,8 +8,11 @@ import android.os.Bundle
 import android.support.v4.app.ActivityCompat
 import android.support.v7.app.AppCompatActivity
 import android.telephony.SmsManager
+import android.util.Log
 import android.widget.Button
 import android.widget.Toast
+import com.reedcwilson.personal_assistant.email.EmailClient
+import com.reedcwilson.personal_assistant.email.EmailMessage
 
 
 class MainActivity : AppCompatActivity() {
@@ -19,11 +22,15 @@ class MainActivity : AppCompatActivity() {
         setContentView(R.layout.activity_main)
         val sendBtn = findViewById<Button>(R.id.sendBtn)
         sendBtn.setOnClickListener {
-            ActivityCompat.requestPermissions(this@MainActivity, arrayOf(Manifest.permission.SEND_SMS),1);
+            ActivityCompat.requestPermissions(this@MainActivity, arrayOf(Manifest.permission.SEND_SMS),1)
         }
         val callBtn = findViewById<Button>(R.id.callBtn)
         callBtn.setOnClickListener {
-            ActivityCompat.requestPermissions(this@MainActivity, arrayOf(Manifest.permission.CALL_PHONE),2);
+            ActivityCompat.requestPermissions(this@MainActivity, arrayOf(Manifest.permission.CALL_PHONE),2)
+        }
+        val emailBtn = findViewById<Button>(R.id.emailBtn)
+        emailBtn.setOnClickListener {
+            ActivityCompat.requestPermissions(this@MainActivity, arrayOf(Manifest.permission.INTERNET),3)
         }
     }
 
@@ -47,7 +54,29 @@ class MainActivity : AppCompatActivity() {
                 }
                 return
             }
+            3 -> {
+                // If request is cancelled, the result arrays are empty.
+                if (grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                    sendEmail("reedcwilson@gmail.com", "test", "this is a test")
+                } else {
+                    Toast.makeText(this@MainActivity, "Permission denied to send email", Toast.LENGTH_SHORT).show()
+                }
+                return
+            }
         }
+    }
+
+    private fun sendEmail(to: String, subject: String, message: String) {
+        val from: String = "reedcwilson@gmail.com"
+        val pwd: String = "pwd"
+        EmailClient().execute(EmailMessage(
+                from,
+                pwd,
+                to,
+                subject,
+                message,
+                listOf()
+        ))
     }
 
     private fun sendSms(number: String, message: String) {
@@ -56,7 +85,7 @@ class MainActivity : AppCompatActivity() {
             smsManager.sendTextMessage(number, null, message, null, null)
         }
         catch (e: Throwable) {
-            println(e.toString())
+            Log.e("SendSMS", e.message, e)
         }
     }
 
