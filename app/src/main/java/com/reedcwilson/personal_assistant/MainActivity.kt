@@ -17,21 +17,18 @@ import com.reedcwilson.personal_assistant.email.EmailMessage
 
 class MainActivity : AppCompatActivity() {
 
+    private fun requestPermission(permission: String, btn: Button, resultNum: Int) {
+        btn.setOnClickListener {
+            ActivityCompat.requestPermissions(this@MainActivity, arrayOf(permission), resultNum)
+        }
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
-        val sendBtn = findViewById<Button>(R.id.sendBtn)
-        sendBtn.setOnClickListener {
-            ActivityCompat.requestPermissions(this@MainActivity, arrayOf(Manifest.permission.SEND_SMS),1)
-        }
-        val callBtn = findViewById<Button>(R.id.callBtn)
-        callBtn.setOnClickListener {
-            ActivityCompat.requestPermissions(this@MainActivity, arrayOf(Manifest.permission.CALL_PHONE),2)
-        }
-        val emailBtn = findViewById<Button>(R.id.emailBtn)
-        emailBtn.setOnClickListener {
-            ActivityCompat.requestPermissions(this@MainActivity, arrayOf(Manifest.permission.INTERNET),3)
-        }
+        requestPermission(Manifest.permission.SEND_SMS, findViewById<Button>(R.id.sendBtn), 1)
+        requestPermission(Manifest.permission.CALL_PHONE, findViewById<Button>(R.id.callBtn), 2)
+        requestPermission(Manifest.permission.INTERNET, findViewById<Button>(R.id.sendBtn), 3)
     }
 
     override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<String>, grantResults: IntArray) {
