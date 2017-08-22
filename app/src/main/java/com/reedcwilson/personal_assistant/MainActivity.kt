@@ -1,21 +1,33 @@
 package com.reedcwilson.personal_assistant
 
 import android.Manifest
+import android.app.Activity
+import android.app.AlarmManager
+import android.app.PendingIntent
+import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Bundle
 import android.support.v4.app.ActivityCompat
-import android.support.v7.app.AppCompatActivity
 import android.telephony.SmsManager
 import android.util.Log
+import android.view.View
+import android.widget.ArrayAdapter
 import android.widget.Button
 import android.widget.Toast
+import com.reedcwilson.personal_assistant.data.Message
 import com.reedcwilson.personal_assistant.email.EmailClient
 import com.reedcwilson.personal_assistant.email.EmailMessage
+import io.reactivex.Single
+import io.reactivex.android.schedulers.AndroidSchedulers
+import io.reactivex.schedulers.Schedulers
+import kotlinx.android.synthetic.main.activity_main.*
 
 
-class MainActivity : AppCompatActivity() {
+class MainActivity : Activity() {
+
+    lateinit var adapter: ArrayAdapter<Message>
 
     private fun requestPermission(permission: String, btn: Button, resultNum: Int) {
         btn.setOnClickListener {
@@ -26,9 +38,57 @@ class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
-        requestPermission(Manifest.permission.SEND_SMS, findViewById<Button>(R.id.sendBtn), 1)
-        requestPermission(Manifest.permission.CALL_PHONE, findViewById<Button>(R.id.callBtn), 2)
-        requestPermission(Manifest.permission.INTERNET, findViewById<Button>(R.id.sendBtn), 3)
+        requestPermission(Manifest.permission.SEND_SMS, sendBtn, 1)
+        requestPermission(Manifest.permission.CALL_PHONE, callBtn, 2)
+        requestPermission(Manifest.permission.INTERNET, sendBtn, 3)
+
+        adapter = ArrayAdapter<Message>(this, android.R.layout.simple_list_item_1)
+        listView.adapter = adapter
+        registerGetAllMessageListener()
+    }
+
+    fun add(content: String, type: String) {
+        val message = Message(0, type, content)
+        Single.fromCallable { MyApp.database?.messageDao()?.insert(message) }
+                .subscribeOn(Schedulers.io())
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribe { id ->
+                    Log.i("tag", id.toString())
+                }
+    }
+
+    fun addMessage(view: View) {
+        add(System.currentTimeMillis().toString(), "phone")
+        Toast.makeText(this, "Message added", Toast.LENGTH_SHORT).show()
+    }
+
+    fun registerGetAllMessageListener() {
+        MyApp.database?.messageDao()?.getAll()
+                ?.subscribeOn(Schedulers.io())
+                ?.observeOn(AndroidSchedulers.mainThread())
+                ?.subscribe { messages ->
+                    adapter.clear()
+                    adapter.addAll(messages)
+                    msgNum.text = System.currentTimeMillis().toString()
+                }
+    }
+
+    fun startAlarm(view: View) {
+        val alarmIntent = Intent(this, AlarmReceiver::class.java)
+        val id = System.currentTimeMillis().toInt()
+        val pendingIntent = PendingIntent.getBroadcast(this, id, alarmIntent, 0)
+        val manager = getSystemService(Context.ALARM_SERVICE) as AlarmManager
+        manager.set(AlarmManager.RTC_WAKEUP, System.currentTimeMillis() + 5000, pendingIntent)
+        Toast.makeText(this, "Alarm Set", Toast.LENGTH_SHORT).show()
+    }
+
+    fun cancelAlarm(view: View) {
+        val alarmIntent = Intent(this, AlarmReceiver::class.java)
+        val id = System.currentTimeMillis().toInt()
+        val pendingIntent = PendingIntent.getBroadcast(this, id, alarmIntent, 0)
+        val manager = getSystemService(Context.ALARM_SERVICE) as AlarmManager
+        manager.cancel(pendingIntent)
+        Toast.makeText(this, "Alarm Canceled", Toast.LENGTH_SHORT).show()
     }
 
     override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<String>, grantResults: IntArray) {
@@ -80,8 +140,7 @@ class MainActivity : AppCompatActivity() {
         try {
             val smsManager = SmsManager.getDefault()
             smsManager.sendTextMessage(number, null, message, null, null)
-        }
-        catch (e: Throwable) {
+        } catch (e: Throwable) {
             Log.e("SendSMS", e.message, e)
         }
     }

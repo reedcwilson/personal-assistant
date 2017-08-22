@@ -1,15 +1,14 @@
 apply plugin: 'com.android.application'
-
 apply plugin: 'kotlin-android'
-
 apply plugin: 'kotlin-android-extensions'
+apply plugin: 'kotlin-kapt'
 
 android {
     compileSdkVersion 26
     buildToolsVersion "26.0.1"
     defaultConfig {
         applicationId "com.reedcwilson.personal_assistant"
-        minSdkVersion 23
+        minSdkVersion 15
         targetSdkVersion 26
         versionCode 1
         versionName "1.0"
@@ -31,7 +30,21 @@ dependencies {
     testImplementation 'junit:junit:4.12'
     androidTestImplementation 'com.android.support.test:runner:1.0.0'
     androidTestImplementation 'com.android.support.test.espresso:espresso-core:3.0.0'
+
+    // email support
     implementation files('libs/activation.jar')
     implementation files('libs/additionnal.jar')
     implementation files('libs/mail.jar')
+
+    // Room
+    compile "android.arch.persistence.room:runtime:${rootProject.roomVersion}"
+    compile "android.arch.persistence.room:rxjava2:${rootProject.roomVersion}"
+    annotationProcessor "android.arch.persistence.room:compiler:${rootProject.roomVersion}"
+    kapt "android.arch.persistence.room:compiler:${rootProject.roomVersion}"
+
+    // RXJava
+    compile "io.reactivex.rxjava2:rxjava:2.1.0"
+    compile "io.reactivex.rxjava2:rxandroid:2.0.1"
+
+    testCompile 'junit:junit:4.12'
 }
