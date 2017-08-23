@@ -23,11 +23,28 @@ import io.reactivex.Single
 import io.reactivex.android.schedulers.AndroidSchedulers
 import io.reactivex.schedulers.Schedulers
 import kotlinx.android.synthetic.main.activity_main.*
+import android.provider.ContactsContract
+import android.widget.TextView
+import com.onegravity.contactpicker.contact.ContactSortOrder
+import com.onegravity.contactpicker.core.ContactPickerActivity
+import com.onegravity.contactpicker.contact.ContactDescription
+import com.onegravity.contactpicker.picture.ContactPictureType
+import android.R.style.Theme_Light
+import com.onegravity.contactpicker.contact.Contact
+import com.onegravity.contactpicker.group.Group
 
 
 class MainActivity : Activity() {
 
     lateinit var adapter: ArrayAdapter<Message>
+    val PICK_CONTACTS_REQUEST_CODE = 1
+    val TAG: String = MainActivity::class.java.simpleName
+    val darkTheme = false
+
+    var name: String? = null
+    var phone: String? = null
+    var email: String? = null
+
 
     private fun requestPermission(permission: String, btn: Button, resultNum: Int) {
         btn.setOnClickListener {
@@ -38,9 +55,10 @@ class MainActivity : Activity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
-        requestPermission(Manifest.permission.SEND_SMS, sendBtn, 1)
-        requestPermission(Manifest.permission.CALL_PHONE, callBtn, 2)
-        requestPermission(Manifest.permission.INTERNET, sendBtn, 3)
+//        requestPermission(Manifest.permission.SEND_SMS, sendBtn, 1)
+//        requestPermission(Manifest.permission.CALL_PHONE, callBtn, 2)
+//        requestPermission(Manifest.permission.INTERNET, sendBtn, 3)
+//        requestPermission(Manifest.permission.READ_CONTACTS, selectContactBtn, 4)
 
         adapter = ArrayAdapter<Message>(this, android.R.layout.simple_list_item_1)
         listView.adapter = adapter
@@ -69,8 +87,19 @@ class MainActivity : Activity() {
                 ?.subscribe { messages ->
                     adapter.clear()
                     adapter.addAll(messages)
-                    msgNum.text = System.currentTimeMillis().toString()
                 }
+    }
+
+    fun selectContact(view: View) {
+        val intent = Intent(this, ContactPickerActivity::class.java)
+//                .putExtra(ContactPickerActivity.EXTRA_THEME, if (darkTheme) R.style.Theme_Dark else R.style.Theme_Light)
+                .putExtra(ContactPickerActivity.EXTRA_CONTACT_BADGE_TYPE, ContactPictureType.ROUND.name)
+                .putExtra(ContactPickerActivity.EXTRA_SHOW_CHECK_ALL, true)
+                .putExtra(ContactPickerActivity.EXTRA_CONTACT_DESCRIPTION, ContactDescription.ADDRESS.name)
+                .putExtra(ContactPickerActivity.EXTRA_CONTACT_DESCRIPTION_TYPE, ContactsContract.CommonDataKinds.Email.TYPE_WORK)
+                .putExtra(ContactPickerActivity.EXTRA_CONTACT_SORT_ORDER, ContactSortOrder.AUTOMATIC.name)
+        startActivityForResult(intent, PICK_CONTACTS_REQUEST_CODE)
+//        startActivityForResult(Intent(Intent.ACTION_PICK, ContactsContract.Contacts.CONTENT_URI), PICK_CONTACTS_REQUEST_CODE)
     }
 
     fun startAlarm(view: View) {
@@ -89,6 +118,79 @@ class MainActivity : Activity() {
         val manager = getSystemService(Context.ALARM_SERVICE) as AlarmManager
         manager.cancel(pendingIntent)
         Toast.makeText(this, "Alarm Canceled", Toast.LENGTH_SHORT).show()
+    }
+
+//    fun getContactId(uri: Uri): String {
+//        var contactId: String = ""
+//        val cursor = contentResolver.query(uri, arrayOf(ContactsContract.Contacts._ID), null, null, null)
+//        if (cursor.moveToFirst()) {
+//            contactId = cursor.getString(cursor.getColumnIndex(ContactsContract.Contacts._ID))
+//        }
+//        cursor.close()
+//        return contactId
+//    }
+//
+//    fun getPhoneNumber(contactId: String): String? {
+//        var phoneNumber: String? = null
+//        val cursor = contentResolver.query(
+//                ContactsContract.CommonDataKinds.Phone.CONTENT_URI,
+//                arrayOf(ContactsContract.CommonDataKinds.Phone.NUMBER),
+//                ContactsContract.CommonDataKinds.Phone.CONTACT_ID + " = ? AND " +
+//                        ContactsContract.CommonDataKinds.Phone.TYPE + " = " +
+//                        ContactsContract.CommonDataKinds.Phone.TYPE_MOBILE,
+//                arrayOf(contactId),
+//                null)
+//        if (cursor.moveToFirst()) {
+//            phoneNumber = cursor.getString(cursor.getColumnIndex(ContactsContract.CommonDataKinds.Phone.NUMBER))
+//        }
+//        cursor.close()
+//        return phoneNumber
+//    }
+//
+//    fun getEmailAddress(contactId: String): String? {
+//        var email: String? = null
+//        val cursor = contentResolver.query(ContactsContract.CommonDataKinds.Email.CONTENT_URI,
+//                arrayOf(ContactsContract.CommonDataKinds.Email.ADDRESS),
+//                ContactsContract.CommonDataKinds.Email.CONTACT_ID + " = ?",
+//                arrayOf(contactId),
+//                null)
+//        if (cursor.moveToFirst()) {
+//            email = cursor.getString(cursor.getColumnIndex(ContactsContract.CommonDataKinds.Email.DATA))
+//        }
+//        cursor.close()
+//        return email
+//    }
+//
+//    fun getContactName(uri: Uri): String? {
+//        var name: String? = null
+//        val cursor = contentResolver.query(uri, null, null, null, null)
+//        if (cursor.moveToFirst()) {
+//            name = cursor.getString(cursor.getColumnIndex(ContactsContract.Contacts.DISPLAY_NAME))
+//        }
+//        cursor.close()
+//        return name
+//    }
+
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent) {
+        super.onActivityResult(requestCode, resultCode, data)
+        if (requestCode == PICK_CONTACTS_REQUEST_CODE && resultCode == RESULT_OK && data.hasExtra(ContactPickerActivity.RESULT_CONTACT_DATA)) {
+            Log.d(TAG, "Response: " + data.toString())
+//            val contactId = getContactId(data.data)
+//            name = getContactName(data.data)
+//            phone = getPhoneNumber(contactId)
+//            email = getEmailAddress(contactId)
+            val contacts: List<*> = data.getSerializableExtra(ContactPickerActivity.RESULT_CONTACT_DATA) as List<*>
+            var names = ""
+            for (c in contacts) {
+                val contact = c as Contact
+                names = names + "," + contact.displayName
+            }
+            val groups: List<*> = data.getSerializableExtra(ContactPickerActivity.RESULT_CONTACT_DATA) as List<*>
+            for (g in groups) {
+                val group = g as Group
+            }
+            contactName.setText(names, TextView.BufferType.EDITABLE)
+        }
     }
 
     override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<String>, grantResults: IntArray) {
@@ -120,6 +222,15 @@ class MainActivity : Activity() {
                 }
                 return
             }
+//            4 -> {
+//                // If request is cancelled, the result arrays are empty.
+//                if (grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+//                    selectContact()
+//                } else {
+//                    Toast.makeText(this@MainActivity, "Permission denied to read contacts", Toast.LENGTH_SHORT).show()
+//                }
+//                return
+//            }
         }
     }
 
