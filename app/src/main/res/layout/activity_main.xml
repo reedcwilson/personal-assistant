@@ -58,4 +58,25 @@
         app:layout_constraintTop_toBottomOf="@+id/selectContactBtn"
         android:layout_marginTop="4dp" />
 
+    <Spinner
+        android:id="@+id/spinner"
+        android:layout_width="368dp"
+        android:layout_height="wrap_content"
+        tools:layout_editor_absoluteX="8dp"
+        tools:layout_editor_absoluteY="228dp" />
+
+    <EditText
+        android:id="@+id/editText3"
+        android:layout_width="365dp"
+        android:layout_height="wrap_content"
+        android:ems="10"
+        android:inputType="textPersonName"
+        android:text="Message"
+        app:layout_constraintTop_toBottomOf="@+id/contactName"
+        app:layout_constraintStart_toStartOf="parent"
+        android:layout_marginStart="8dp"
+        app:layout_constraintEnd_toEndOf="parent"
+        android:layout_marginEnd="8dp"
+        tools:layout_editor_absoluteX="-65dp" />
+
 </android.support.constraint.ConstraintLayout>

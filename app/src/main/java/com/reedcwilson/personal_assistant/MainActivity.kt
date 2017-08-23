@@ -36,8 +36,10 @@ class MainActivity : Activity() {
 
     lateinit var adapter: ArrayAdapter<Message>
     val PICK_CONTACTS_REQUEST_CODE = 1
+    val SMS_PERMISSION_CODE = 1
+    val PHONE_PERMISSION_CODE = 2
+    val INTERNET_PERMISSION_CODE = 3
     val TAG: String = MainActivity::class.java.simpleName
-    val darkTheme = false
 
     private fun requestPermission(permission: String, btn: Button, resultNum: Int) {
         btn.setOnClickListener {
@@ -48,9 +50,9 @@ class MainActivity : Activity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
-//        requestPermission(Manifest.permission.SEND_SMS, sendBtn, 1)
-//        requestPermission(Manifest.permission.CALL_PHONE, callBtn, 2)
-//        requestPermission(Manifest.permission.INTERNET, sendBtn, 3)
+//        requestPermission(Manifest.permission.SEND_SMS, sendBtn, SMS_PERMISSION_CODE)
+//        requestPermission(Manifest.permission.CALL_PHONE, callBtn, PHONE_PERMISSION_CODE)
+//        requestPermission(Manifest.permission.INTERNET, sendBtn, INTERNET_PERMISSION_CODE)
 
         adapter = ArrayAdapter<Message>(this, android.R.layout.simple_list_item_1)
         listView.adapter = adapter
