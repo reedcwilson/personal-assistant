@@ -111,9 +111,9 @@ class MainActivity : Activity() {
         Toast.makeText(this, "Alarm Canceled", Toast.LENGTH_SHORT).show()
     }
 
-    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent) {
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         super.onActivityResult(requestCode, resultCode, data)
-        if (requestCode == PICK_CONTACTS_REQUEST_CODE && resultCode == RESULT_OK && data.hasExtra(ContactPickerActivity.RESULT_CONTACT_DATA)) {
+        if (requestCode == PICK_CONTACTS_REQUEST_CODE && resultCode == RESULT_OK && data!= null && data.hasExtra(ContactPickerActivity.RESULT_CONTACT_DATA)) {
             Log.d(TAG, "Response: " + data.toString())
             val contacts: List<*> = data.getSerializableExtra(ContactPickerActivity.RESULT_CONTACT_DATA) as List<*>
             var names = ""
@@ -121,7 +121,7 @@ class MainActivity : Activity() {
                 val contact = c as Contact
                 names = names + "," + contact.displayName
             }
-            val groups: List<*> = data.getSerializableExtra(ContactPickerActivity.RESULT_CONTACT_DATA) as List<*>
+            val groups: List<*> = data.getSerializableExtra(ContactPickerActivity.RESULT_GROUP_DATA) as List<*>
             for (g in groups) {
                 val group = g as Group
             }
