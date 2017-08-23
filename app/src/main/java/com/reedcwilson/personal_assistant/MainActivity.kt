@@ -1,8 +1,6 @@
 package com.reedcwilson.personal_assistant
 
-import android.app.Activity
-import android.app.AlarmManager
-import android.app.PendingIntent
+import android.app.*
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
@@ -13,10 +11,7 @@ import android.support.v4.app.ActivityCompat
 import android.telephony.SmsManager
 import android.util.Log
 import android.view.View
-import android.widget.ArrayAdapter
-import android.widget.Button
-import android.widget.TextView
-import android.widget.Toast
+import android.widget.*
 import com.onegravity.contactpicker.contact.Contact
 import com.onegravity.contactpicker.contact.ContactDescription
 import com.onegravity.contactpicker.contact.ContactSortOrder
@@ -30,9 +25,13 @@ import io.reactivex.Single
 import io.reactivex.android.schedulers.AndroidSchedulers
 import io.reactivex.schedulers.Schedulers
 import kotlinx.android.synthetic.main.activity_main.*
+import java.util.*
+
+import com.wdullaer.materialdatetimepicker.time.TimePickerDialog
+import com.wdullaer.materialdatetimepicker.date.DatePickerDialog
 
 
-class MainActivity : Activity() {
+class MainActivity : Activity(), TimePickerDialog.OnTimeSetListener, DatePickerDialog.OnDateSetListener {
 
     lateinit var adapter: ArrayAdapter<Message>
     val PICK_CONTACTS_REQUEST_CODE = 1
@@ -59,6 +58,15 @@ class MainActivity : Activity() {
         registerGetAllMessageListener()
     }
 
+    override fun onDateSet(view: DatePickerDialog?, year: Int, month: Int, day: Int) {
+        Toast.makeText(this, "you picked the following date: $year/$month/$day", Toast.LENGTH_SHORT).show()
+    }
+
+    override fun onTimeSet(view: TimePickerDialog?, hour: Int, minute: Int, second: Int) {
+        Toast.makeText(this, "you picked the following date: $hour:$minute", Toast.LENGTH_SHORT).show()
+    }
+
+
     fun add(content: String, type: String) {
         val message = Message(0, type, content)
         Single.fromCallable { MyApp.database?.messageDao()?.insert(message) }
@@ -67,6 +75,26 @@ class MainActivity : Activity() {
                 .subscribe { id ->
                     Log.i(TAG, id.toString())
                 }
+    }
+
+    fun selectDate(view: View) {
+        val now = Calendar.getInstance()
+        val pickerDialog = DatePickerDialog.newInstance(
+                this,
+                now.get(Calendar.YEAR),
+                now.get(Calendar.MONTH),
+                now.get(Calendar.DAY_OF_MONTH))
+        pickerDialog.show(fragmentManager, "Datepickerdialog")
+    }
+
+    fun selectTime(view: View) {
+        val now = Calendar.getInstance()
+        val pickerDialog = TimePickerDialog.newInstance(
+                this,
+                now.get(Calendar.HOUR),
+                now.get(Calendar.MINUTE),
+                true)
+        pickerDialog.show(fragmentManager, "Timepickerdialog")
     }
 
     fun addMessage(view: View) {
