@@ -1,3 +1,8 @@
 <resources>
     <string name="app_name">personal-assistant</string>
+    <string-array name="message_types">
+        <item>Text</item>
+        <item>Phone</item>
+        <item>Email</item>
+    </string-array>
 </resources>
