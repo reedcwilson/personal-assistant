@@ -11,7 +11,6 @@ import android.provider.ContactsContract
 import android.support.design.widget.Snackbar
 import android.support.v4.app.ActivityCompat
 import android.telephony.SmsManager
-import android.text.Layout
 import android.util.Log
 import android.view.View
 import android.widget.*
@@ -20,8 +19,7 @@ import com.onegravity.contactpicker.contact.ContactDescription
 import com.onegravity.contactpicker.contact.ContactSortOrder
 import com.onegravity.contactpicker.core.ContactPickerActivity
 import com.onegravity.contactpicker.group.Group
-import com.onegravity.contactpicker.picture.ContactPictureType
-import com.reedcwilson.personal_assistant.data.Message
+import com.onegravity.contactpicker.picture.ContactPictureType import com.reedcwilson.personal_assistant.data.Message
 import com.reedcwilson.personal_assistant.email.EmailClient
 import com.reedcwilson.personal_assistant.email.EmailMessage
 import io.reactivex.Single
@@ -33,6 +31,7 @@ import java.util.*
 import com.wdullaer.materialdatetimepicker.time.TimePickerDialog
 import com.wdullaer.materialdatetimepicker.date.DatePickerDialog
 import java.text.SimpleDateFormat
+import kotlin.reflect.KFunction1
 
 
 class MainActivity : Activity(), TimePickerDialog.OnTimeSetListener, DatePickerDialog.OnDateSetListener {
@@ -43,6 +42,7 @@ class MainActivity : Activity(), TimePickerDialog.OnTimeSetListener, DatePickerD
     val SMS_PERMISSION_CODE = 1
     val PHONE_PERMISSION_CODE = 2
     val INTERNET_PERMISSION_CODE = 3
+    val CONTACTS_PERMISSION_CODE = 4
     val TAG: String = MainActivity::class.java.simpleName
 
     var contact: Contact? = null
@@ -50,20 +50,24 @@ class MainActivity : Activity(), TimePickerDialog.OnTimeSetListener, DatePickerD
     var date: Date? = null
     var time: Date? = null
 
-    private fun requestPermission(permission: String, btn: Button, resultNum: Int) {
-        btn.setOnClickListener {
-            ActivityCompat.requestPermissions(this@MainActivity, arrayOf(permission), resultNum)
+    fun checkPermissionDoOp(permission: String, resultNum: Int, func: () -> Unit) {
+        if (checkSelfPermission(permission) != PackageManager.PERMISSION_GRANTED) {
+            ActivityCompat.requestPermissions(this, arrayOf(permission), resultNum)
+            return
         }
+        func()
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
         rootLayout = main_layout
-//        requestPermission(Manifest.permission.SEND_SMS, sendBtn, SMS_PERMISSION_CODE)
-//        requestPermission(Manifest.permission.CALL_PHONE, callBtn, PHONE_PERMISSION_CODE)
-//        requestPermission(Manifest.permission.INTERNET, sendBtn, INTERNET_PERMISSION_CODE)
-        requestPermission(Manifest.permission.READ_CONTACTS, selectContactBtn, 4)
+//        checkPermissionDoOp(Manifest.permission.SEND_SMS, SMS_PERMISSION_CODE, { sendSms() })
+//        checkPermissionDoOp(Manifest.permission.CALL_PHONE, PHONE_PERMISSION_CODE, { makePhoneCall() })
+//        checkPermissionDoOp(Manifest.permission.INTERNET, INTERNET_PERMISSION_CODE, { sendEmail() })
+        selectContactBtn.setOnClickListener {
+            checkPermissionDoOp(Manifest.permission.READ_CONTACTS, CONTACTS_PERMISSION_CODE, { selectContacts() })
+        }
 
         adapter = ArrayAdapter<Message>(this, android.R.layout.simple_list_item_1)
         listView.adapter = adapter
@@ -113,65 +117,9 @@ class MainActivity : Activity(), TimePickerDialog.OnTimeSetListener, DatePickerD
         pickerDialog.show(fragmentManager, "Timepickerdialog")
     }
 
-    fun createDate(d: Date, t: Date) : Date {
-        val date = Calendar.getInstance()
-        date.time = d
-        val time = Calendar.getInstance()
-        time.time = t
-        val calendar = Calendar.getInstance()
-        calendar.set(
-                date.get(Calendar.YEAR),
-                date.get(Calendar.MONTH),
-                date.get(Calendar.DAY_OF_MONTH),
-                time.get(Calendar.HOUR_OF_DAY),
-                time.get(Calendar.MINUTE)
-        )
-        return calendar.time
-    }
-
     fun addMessage(view: View) {
         add(contact, messageTxt.text.toString(), messageTypes.selectedItem.toString(), createDate(date!!, time!!))
         Snackbar.make(rootLayout, "Message added", Snackbar.LENGTH_SHORT).show()
-    }
-
-    fun registerGetAllMessageListener() {
-        MyApp.database?.messageDao()?.getAll()
-                ?.subscribeOn(Schedulers.io())
-                ?.observeOn(AndroidSchedulers.mainThread())
-                ?.subscribe { messages ->
-                    adapter.clear()
-                    adapter.addAll(messages)
-                }
-    }
-
-//    fun selectContact(view: View) {
-    fun selectContact() {
-        val intent = Intent(this, ContactPickerActivity::class.java)
-//                .putExtra(ContactPickerActivity.EXTRA_THEME, if (darkTheme) R.style.Theme_Dark else R.style.Theme_Light)
-                .putExtra(ContactPickerActivity.EXTRA_CONTACT_BADGE_TYPE, ContactPictureType.ROUND.name)
-                .putExtra(ContactPickerActivity.EXTRA_SHOW_CHECK_ALL, true)
-                .putExtra(ContactPickerActivity.EXTRA_CONTACT_DESCRIPTION, ContactDescription.ADDRESS.name)
-                .putExtra(ContactPickerActivity.EXTRA_CONTACT_DESCRIPTION_TYPE, ContactsContract.CommonDataKinds.Email.TYPE_WORK)
-                .putExtra(ContactPickerActivity.EXTRA_CONTACT_SORT_ORDER, ContactSortOrder.AUTOMATIC.name)
-        startActivityForResult(intent, PICK_CONTACTS_REQUEST_CODE)
-    }
-
-    fun startAlarm(view: View) {
-        val alarmIntent = Intent(this, AlarmReceiver::class.java)
-        val id = System.currentTimeMillis().toInt()
-        val pendingIntent = PendingIntent.getBroadcast(this, id, alarmIntent, 0)
-        val manager = getSystemService(Context.ALARM_SERVICE) as AlarmManager
-        manager.set(AlarmManager.RTC_WAKEUP, System.currentTimeMillis() + 5000, pendingIntent)
-        Snackbar.make(rootLayout, "Alarm Set", Snackbar.LENGTH_SHORT).show()
-    }
-
-    fun cancelAlarm(view: View) {
-        val alarmIntent = Intent(this, AlarmReceiver::class.java)
-        val id = System.currentTimeMillis().toInt()
-        val pendingIntent = PendingIntent.getBroadcast(this, id, alarmIntent, 0)
-        val manager = getSystemService(Context.ALARM_SERVICE) as AlarmManager
-        manager.cancel(pendingIntent)
-        Snackbar.make(rootLayout, "Alarm Canceled", Snackbar.LENGTH_SHORT).show()
     }
 
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
@@ -195,75 +143,133 @@ class MainActivity : Activity(), TimePickerDialog.OnTimeSetListener, DatePickerD
 
     override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<String>, grantResults: IntArray) {
         when (requestCode) {
-            1 -> {
+            SMS_PERMISSION_CODE -> {
                 // If request is cancelled, the result arrays are empty.
                 if (grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                    sendSms("8018229975", "this is a test")
+                    sendSms()
                 } else {
                     Snackbar.make(rootLayout, "Permission denied to send SMS", Snackbar.LENGTH_SHORT).show()
                 }
                 return
             }
-            2 -> {
+            PHONE_PERMISSION_CODE -> {
                 // If request is cancelled, the result arrays are empty.
                 if (grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                    makePhoneCall("8017057567")
+                    makePhoneCall()
                 } else {
                     Snackbar.make(rootLayout, "Permission denied to make phone call", Snackbar.LENGTH_SHORT).show()
                 }
                 return
             }
-            3 -> {
+            INTERNET_PERMISSION_CODE -> {
                 // If request is cancelled, the result arrays are empty.
                 if (grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                    sendEmail("reedcwilson@gmail.com", "test", "this is a test")
+                    sendEmail()
                 } else {
                     Snackbar.make(rootLayout, "Permission denied to send email", Snackbar.LENGTH_SHORT).show()
                 }
                 return
             }
-            4 -> {
+            CONTACTS_PERMISSION_CODE -> {
                 // If request is cancelled, the result arrays are empty.
                 if (grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                    selectContact()
+                    selectContacts()
                 } else {
                     Snackbar.make(rootLayout, "Permission denied to send email", Snackbar.LENGTH_SHORT).show()
                 }
                 return
             }
+            else -> super.onRequestPermissionsResult(requestCode, permissions, grantResults)
         }
     }
 
-    private fun sendEmail(to: String, subject: String, message: String) {
+    private fun registerGetAllMessageListener() {
+        MyApp.database?.messageDao()?.getAll()
+                ?.subscribeOn(Schedulers.io())
+                ?.observeOn(AndroidSchedulers.mainThread())
+                ?.subscribe { messages ->
+                    adapter.clear()
+                    adapter.addAll(messages)
+                }
+    }
+
+    //    private fun selectContacts(view: View) {
+    private fun selectContacts() {
+        val intent = Intent(this, ContactPickerActivity::class.java)
+//                .putExtra(ContactPickerActivity.EXTRA_THEME, if (darkTheme) R.style.Theme_Dark else R.style.Theme_Light)
+                .putExtra(ContactPickerActivity.EXTRA_CONTACT_BADGE_TYPE, ContactPictureType.ROUND.name)
+                .putExtra(ContactPickerActivity.EXTRA_SHOW_CHECK_ALL, true)
+                .putExtra(ContactPickerActivity.EXTRA_CONTACT_DESCRIPTION, ContactDescription.ADDRESS.name)
+                .putExtra(ContactPickerActivity.EXTRA_CONTACT_DESCRIPTION_TYPE, ContactsContract.CommonDataKinds.Email.TYPE_WORK)
+                .putExtra(ContactPickerActivity.EXTRA_CONTACT_SORT_ORDER, ContactSortOrder.AUTOMATIC.name)
+        startActivityForResult(intent, PICK_CONTACTS_REQUEST_CODE)
+    }
+
+    private fun startAlarm() {
+        val alarmIntent = Intent(this, AlarmReceiver::class.java)
+        val id = System.currentTimeMillis().toInt()
+        val pendingIntent = PendingIntent.getBroadcast(this, id, alarmIntent, 0)
+        val manager = getSystemService(Context.ALARM_SERVICE) as AlarmManager
+        manager.set(AlarmManager.RTC_WAKEUP, System.currentTimeMillis() + 5000, pendingIntent)
+        Snackbar.make(rootLayout, "Alarm Set", Snackbar.LENGTH_SHORT).show()
+    }
+
+    private fun cancelAlarm() {
+        val alarmIntent = Intent(this, AlarmReceiver::class.java)
+        val id = System.currentTimeMillis().toInt()
+        val pendingIntent = PendingIntent.getBroadcast(this, id, alarmIntent, 0)
+        val manager = getSystemService(Context.ALARM_SERVICE) as AlarmManager
+        manager.cancel(pendingIntent)
+        Snackbar.make(rootLayout, "Alarm Canceled", Snackbar.LENGTH_SHORT).show()
+    }
+
+
+    private fun sendEmail() {
         val from: String = "reedcwilson@gmail.com"
         val pwd: String = "pwd"
         EmailClient().execute(EmailMessage(
                 from,
                 pwd,
-                to,
-                subject,
-                message,
+                "reedcwilson@gmail.com",
+                "test",
+                "this is a test",
                 listOf()
         ))
     }
 
-    private fun sendSms(number: String, message: String) {
+    private fun sendSms() {
         try {
             val smsManager = SmsManager.getDefault()
-            smsManager.sendTextMessage(number, null, message, null, null)
+            smsManager.sendTextMessage("+8018229975", null, "this is a test", null, null)
         } catch (e: Throwable) {
             Log.e(TAG, e.message, e)
         }
     }
 
-    private fun makePhoneCall(number: String) {
+    private fun makePhoneCall() {
         val intent = Intent(Intent.ACTION_CALL)
-        intent.data = Uri.parse("tel:" + number)
+        intent.data = Uri.parse("tel:" + "8017057567")
 
         val permission = "android.permission.CALL_PHONE"
         val res = checkCallingOrSelfPermission(permission)
         if (res == PackageManager.PERMISSION_GRANTED) {
             startActivity(intent)
         }
+    }
+
+    private fun createDate(d: Date, t: Date) : Date {
+        val date = Calendar.getInstance()
+        date.time = d
+        val time = Calendar.getInstance()
+        time.time = t
+        val calendar = Calendar.getInstance()
+        calendar.set(
+                date.get(Calendar.YEAR),
+                date.get(Calendar.MONTH),
+                date.get(Calendar.DAY_OF_MONTH),
+                time.get(Calendar.HOUR_OF_DAY),
+                time.get(Calendar.MINUTE)
+        )
+        return calendar.time
     }
 }
