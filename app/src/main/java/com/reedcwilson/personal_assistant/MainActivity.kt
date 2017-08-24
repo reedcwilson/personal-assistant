@@ -8,8 +8,10 @@ import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Bundle
 import android.provider.ContactsContract
+import android.support.design.widget.Snackbar
 import android.support.v4.app.ActivityCompat
 import android.telephony.SmsManager
+import android.text.Layout
 import android.util.Log
 import android.view.View
 import android.widget.*
@@ -36,6 +38,7 @@ import java.text.SimpleDateFormat
 class MainActivity : Activity(), TimePickerDialog.OnTimeSetListener, DatePickerDialog.OnDateSetListener {
 
     lateinit var adapter: ArrayAdapter<Message>
+    lateinit var rootLayout: View
     val PICK_CONTACTS_REQUEST_CODE = 1
     val SMS_PERMISSION_CODE = 1
     val PHONE_PERMISSION_CODE = 2
@@ -56,6 +59,7 @@ class MainActivity : Activity(), TimePickerDialog.OnTimeSetListener, DatePickerD
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
+        rootLayout = main_layout
 //        requestPermission(Manifest.permission.SEND_SMS, sendBtn, SMS_PERMISSION_CODE)
 //        requestPermission(Manifest.permission.CALL_PHONE, callBtn, PHONE_PERMISSION_CODE)
 //        requestPermission(Manifest.permission.INTERNET, sendBtn, INTERNET_PERMISSION_CODE)
@@ -127,7 +131,7 @@ class MainActivity : Activity(), TimePickerDialog.OnTimeSetListener, DatePickerD
 
     fun addMessage(view: View) {
         add(contact, messageTxt.text.toString(), messageTypes.selectedItem.toString(), createDate(date!!, time!!))
-        Toast.makeText(this, "Message added", Toast.LENGTH_SHORT).show()
+        Snackbar.make(rootLayout, "Message added", Snackbar.LENGTH_SHORT).show()
     }
 
     fun registerGetAllMessageListener() {
@@ -158,7 +162,7 @@ class MainActivity : Activity(), TimePickerDialog.OnTimeSetListener, DatePickerD
         val pendingIntent = PendingIntent.getBroadcast(this, id, alarmIntent, 0)
         val manager = getSystemService(Context.ALARM_SERVICE) as AlarmManager
         manager.set(AlarmManager.RTC_WAKEUP, System.currentTimeMillis() + 5000, pendingIntent)
-        Toast.makeText(this, "Alarm Set", Toast.LENGTH_SHORT).show()
+        Snackbar.make(rootLayout, "Alarm Set", Snackbar.LENGTH_SHORT).show()
     }
 
     fun cancelAlarm(view: View) {
@@ -167,7 +171,7 @@ class MainActivity : Activity(), TimePickerDialog.OnTimeSetListener, DatePickerD
         val pendingIntent = PendingIntent.getBroadcast(this, id, alarmIntent, 0)
         val manager = getSystemService(Context.ALARM_SERVICE) as AlarmManager
         manager.cancel(pendingIntent)
-        Toast.makeText(this, "Alarm Canceled", Toast.LENGTH_SHORT).show()
+        Snackbar.make(rootLayout, "Alarm Canceled", Snackbar.LENGTH_SHORT).show()
     }
 
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
@@ -196,7 +200,7 @@ class MainActivity : Activity(), TimePickerDialog.OnTimeSetListener, DatePickerD
                 if (grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
                     sendSms("8018229975", "this is a test")
                 } else {
-                    Toast.makeText(this@MainActivity, "Permission denied to send SMS", Toast.LENGTH_SHORT).show()
+                    Snackbar.make(rootLayout, "Permission denied to send SMS", Snackbar.LENGTH_SHORT).show()
                 }
                 return
             }
@@ -205,7 +209,7 @@ class MainActivity : Activity(), TimePickerDialog.OnTimeSetListener, DatePickerD
                 if (grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
                     makePhoneCall("8017057567")
                 } else {
-                    Toast.makeText(this@MainActivity, "Permission denied to make phone call", Toast.LENGTH_SHORT).show()
+                    Snackbar.make(rootLayout, "Permission denied to make phone call", Snackbar.LENGTH_SHORT).show()
                 }
                 return
             }
@@ -214,7 +218,7 @@ class MainActivity : Activity(), TimePickerDialog.OnTimeSetListener, DatePickerD
                 if (grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
                     sendEmail("reedcwilson@gmail.com", "test", "this is a test")
                 } else {
-                    Toast.makeText(this@MainActivity, "Permission denied to send email", Toast.LENGTH_SHORT).show()
+                    Snackbar.make(rootLayout, "Permission denied to send email", Snackbar.LENGTH_SHORT).show()
                 }
                 return
             }
@@ -223,7 +227,7 @@ class MainActivity : Activity(), TimePickerDialog.OnTimeSetListener, DatePickerD
                 if (grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
                     selectContact()
                 } else {
-                    Toast.makeText(this@MainActivity, "Permission denied to send email", Toast.LENGTH_SHORT).show()
+                    Snackbar.make(rootLayout, "Permission denied to send email", Snackbar.LENGTH_SHORT).show()
                 }
                 return
             }
