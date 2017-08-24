@@ -11,6 +11,7 @@ data class Message(
         val content: String = "",
         val contactInfo: String = "",
         val contactName: String = "",
-        val timeMillis: Long? = null
+        val timeMillis: Long? = null,
+        val active: Boolean = false
 )
 

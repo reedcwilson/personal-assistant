@@ -1,7 +1,9 @@
 package com.reedcwilson.personal_assistant
 
 import android.Manifest
-import android.app.*
+import android.app.Activity
+import android.app.AlarmManager
+import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
@@ -13,25 +15,25 @@ import android.support.v4.app.ActivityCompat
 import android.telephony.SmsManager
 import android.util.Log
 import android.view.View
-import android.widget.*
+import android.widget.ArrayAdapter
+import android.widget.TextView
 import com.onegravity.contactpicker.contact.Contact
 import com.onegravity.contactpicker.contact.ContactDescription
 import com.onegravity.contactpicker.contact.ContactSortOrder
 import com.onegravity.contactpicker.core.ContactPickerActivity
 import com.onegravity.contactpicker.group.Group
-import com.onegravity.contactpicker.picture.ContactPictureType import com.reedcwilson.personal_assistant.data.Message
+import com.onegravity.contactpicker.picture.ContactPictureType
+import com.reedcwilson.personal_assistant.data.Message
 import com.reedcwilson.personal_assistant.email.EmailClient
 import com.reedcwilson.personal_assistant.email.EmailMessage
+import com.wdullaer.materialdatetimepicker.date.DatePickerDialog
+import com.wdullaer.materialdatetimepicker.time.TimePickerDialog
 import io.reactivex.Single
 import io.reactivex.android.schedulers.AndroidSchedulers
 import io.reactivex.schedulers.Schedulers
 import kotlinx.android.synthetic.main.activity_main.*
-import java.util.*
-
-import com.wdullaer.materialdatetimepicker.time.TimePickerDialog
-import com.wdullaer.materialdatetimepicker.date.DatePickerDialog
 import java.text.SimpleDateFormat
-import kotlin.reflect.KFunction1
+import java.util.*
 
 
 class MainActivity : Activity(), TimePickerDialog.OnTimeSetListener, DatePickerDialog.OnDateSetListener {
@@ -118,13 +120,14 @@ class MainActivity : Activity(), TimePickerDialog.OnTimeSetListener, DatePickerD
     }
 
     fun addMessage(view: View) {
-        add(contact, messageTxt.text.toString(), messageTypes.selectedItem.toString(), createDate(date!!, time!!))
-        Snackbar.make(rootLayout, "Message added", Snackbar.LENGTH_SHORT).show()
+        val d = createDate(date!!, time!!)
+        add(contact, messageTxt.text.toString(), messageTypes.selectedItem.toString(), d)
+        startAlarm(d)
     }
 
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         super.onActivityResult(requestCode, resultCode, data)
-        if (requestCode == PICK_CONTACTS_REQUEST_CODE && resultCode == RESULT_OK && data!= null && data.hasExtra(ContactPickerActivity.RESULT_CONTACT_DATA)) {
+        if (requestCode == PICK_CONTACTS_REQUEST_CODE && resultCode == RESULT_OK && data != null && data.hasExtra(ContactPickerActivity.RESULT_CONTACT_DATA)) {
             Log.d(TAG, "Response: " + data.toString())
             val contacts: List<*> = data.getSerializableExtra(ContactPickerActivity.RESULT_CONTACT_DATA) as List<*>
             var names = ""
@@ -205,12 +208,16 @@ class MainActivity : Activity(), TimePickerDialog.OnTimeSetListener, DatePickerD
         startActivityForResult(intent, PICK_CONTACTS_REQUEST_CODE)
     }
 
-    private fun startAlarm() {
+    fun setAlarm(view: View) {
+        startAlarm(Date(System.currentTimeMillis() + 5000))
+    }
+
+    private fun startAlarm(d: Date) {
         val alarmIntent = Intent(this, AlarmReceiver::class.java)
         val id = System.currentTimeMillis().toInt()
         val pendingIntent = PendingIntent.getBroadcast(this, id, alarmIntent, 0)
         val manager = getSystemService(Context.ALARM_SERVICE) as AlarmManager
-        manager.set(AlarmManager.RTC_WAKEUP, System.currentTimeMillis() + 5000, pendingIntent)
+        manager.set(AlarmManager.RTC_WAKEUP, d.time, pendingIntent)
         Snackbar.make(rootLayout, "Alarm Set", Snackbar.LENGTH_SHORT).show()
     }
 
@@ -257,7 +264,7 @@ class MainActivity : Activity(), TimePickerDialog.OnTimeSetListener, DatePickerD
         }
     }
 
-    private fun createDate(d: Date, t: Date) : Date {
+    private fun createDate(d: Date, t: Date): Date {
         val date = Calendar.getInstance()
         date.time = d
         val time = Calendar.getInstance()
