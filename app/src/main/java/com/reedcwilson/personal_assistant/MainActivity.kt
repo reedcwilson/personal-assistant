@@ -1,5 +1,6 @@
 package com.reedcwilson.personal_assistant
 
+import android.Manifest
 import android.app.*
 import android.content.Context
 import android.content.Intent
@@ -29,6 +30,7 @@ import java.util.*
 
 import com.wdullaer.materialdatetimepicker.time.TimePickerDialog
 import com.wdullaer.materialdatetimepicker.date.DatePickerDialog
+import java.text.SimpleDateFormat
 
 
 class MainActivity : Activity(), TimePickerDialog.OnTimeSetListener, DatePickerDialog.OnDateSetListener {
@@ -39,6 +41,11 @@ class MainActivity : Activity(), TimePickerDialog.OnTimeSetListener, DatePickerD
     val PHONE_PERMISSION_CODE = 2
     val INTERNET_PERMISSION_CODE = 3
     val TAG: String = MainActivity::class.java.simpleName
+
+    var contact: Contact? = null
+    var message: String? = null
+    var date: Date? = null
+    var time: Date? = null
 
     private fun requestPermission(permission: String, btn: Button, resultNum: Int) {
         btn.setOnClickListener {
@@ -52,6 +59,7 @@ class MainActivity : Activity(), TimePickerDialog.OnTimeSetListener, DatePickerD
 //        requestPermission(Manifest.permission.SEND_SMS, sendBtn, SMS_PERMISSION_CODE)
 //        requestPermission(Manifest.permission.CALL_PHONE, callBtn, PHONE_PERMISSION_CODE)
 //        requestPermission(Manifest.permission.INTERNET, sendBtn, INTERNET_PERMISSION_CODE)
+        requestPermission(Manifest.permission.READ_CONTACTS, selectContactBtn, 4)
 
         adapter = ArrayAdapter<Message>(this, android.R.layout.simple_list_item_1)
         listView.adapter = adapter
@@ -59,16 +67,20 @@ class MainActivity : Activity(), TimePickerDialog.OnTimeSetListener, DatePickerD
     }
 
     override fun onDateSet(view: DatePickerDialog?, year: Int, month: Int, day: Int) {
-        Toast.makeText(this, "you picked the following date: $year/$month/$day", Toast.LENGTH_SHORT).show()
+        date = SimpleDateFormat("yyyy-MM-dd", Locale.US).parse("$year-$month-$day")
     }
 
     override fun onTimeSet(view: TimePickerDialog?, hour: Int, minute: Int, second: Int) {
-        Toast.makeText(this, "you picked the following date: $hour:$minute", Toast.LENGTH_SHORT).show()
+        time = SimpleDateFormat("HH:mm", Locale.US).parse("$hour:$minute")
     }
 
 
-    fun add(content: String, type: String) {
-        val message = Message(0, type, content)
+    fun add(contact: Contact?, content: String?, type: String?, date: Date?) {
+        var contactInfo = contact!!.getPhone(0)
+        if (type == "Email") {
+            contactInfo = contact.getEmail(0)
+        }
+        val message = Message(0, type!!, content!!, contactInfo, contact.displayName, date!!.time)
         Single.fromCallable { MyApp.database?.messageDao()?.insert(message) }
                 .subscribeOn(Schedulers.io())
                 .observeOn(AndroidSchedulers.mainThread())
@@ -97,8 +109,24 @@ class MainActivity : Activity(), TimePickerDialog.OnTimeSetListener, DatePickerD
         pickerDialog.show(fragmentManager, "Timepickerdialog")
     }
 
+    fun createDate(d: Date, t: Date) : Date {
+        val date = Calendar.getInstance()
+        date.time = d
+        val time = Calendar.getInstance()
+        time.time = t
+        val calendar = Calendar.getInstance()
+        calendar.set(
+                date.get(Calendar.YEAR),
+                date.get(Calendar.MONTH),
+                date.get(Calendar.DAY_OF_MONTH),
+                time.get(Calendar.HOUR_OF_DAY),
+                time.get(Calendar.MINUTE)
+        )
+        return calendar.time
+    }
+
     fun addMessage(view: View) {
-        add(System.currentTimeMillis().toString(), "phone")
+        add(contact, messageTxt.text.toString(), messageTypes.selectedItem.toString(), createDate(date!!, time!!))
         Toast.makeText(this, "Message added", Toast.LENGTH_SHORT).show()
     }
 
@@ -112,7 +140,8 @@ class MainActivity : Activity(), TimePickerDialog.OnTimeSetListener, DatePickerD
                 }
     }
 
-    fun selectContact(view: View) {
+//    fun selectContact(view: View) {
+    fun selectContact() {
         val intent = Intent(this, ContactPickerActivity::class.java)
 //                .putExtra(ContactPickerActivity.EXTRA_THEME, if (darkTheme) R.style.Theme_Dark else R.style.Theme_Light)
                 .putExtra(ContactPickerActivity.EXTRA_CONTACT_BADGE_TYPE, ContactPictureType.ROUND.name)
@@ -147,6 +176,7 @@ class MainActivity : Activity(), TimePickerDialog.OnTimeSetListener, DatePickerD
             Log.d(TAG, "Response: " + data.toString())
             val contacts: List<*> = data.getSerializableExtra(ContactPickerActivity.RESULT_CONTACT_DATA) as List<*>
             var names = ""
+            contact = contacts[0] as Contact
             for (c in contacts) {
                 val contact = c as Contact
                 names = names + "," + contact.displayName
@@ -183,6 +213,15 @@ class MainActivity : Activity(), TimePickerDialog.OnTimeSetListener, DatePickerD
                 // If request is cancelled, the result arrays are empty.
                 if (grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
                     sendEmail("reedcwilson@gmail.com", "test", "this is a test")
+                } else {
+                    Toast.makeText(this@MainActivity, "Permission denied to send email", Toast.LENGTH_SHORT).show()
+                }
+                return
+            }
+            4 -> {
+                // If request is cancelled, the result arrays are empty.
+                if (grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                    selectContact()
                 } else {
                     Toast.makeText(this@MainActivity, "Permission denied to send email", Toast.LENGTH_SHORT).show()
                 }
