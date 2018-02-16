@@ -14,6 +14,7 @@ class AlarmReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
         val myIntent = Intent(context, MainActivity::class.java)
         val pendingIntent = PendingIntent.getActivities(context, 1, arrayOf(myIntent), 0)
+        val messageIntent = PendingIntent.getService(context, 1, Intent(context, MessageService::class.java), 0)
         val icon = R.drawable.ic_launcher_background
         val time = System.currentTimeMillis()
         val not = NotificationCompat.Builder(context, "personal-assistant")
@@ -21,7 +22,7 @@ class AlarmReceiver : BroadcastReceiver() {
                 .setContentTitle("Test")
                 .setContentText("Whoa! Really cool!")
                 .setWhen(time)
-                .addAction(icon, "Send", pendingIntent)
+                .addAction(icon, "Send", messageIntent)
                 .addAction(icon, "Skip", pendingIntent)
                 .build()
         not.flags = not.flags or Notification.FLAG_NO_CLEAR
